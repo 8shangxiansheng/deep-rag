@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff
+          pip install ruff==0.15.9
 
       - name: Lint
         run: ruff check backend tests --select E9,F63,F7,F82
@@ -82,7 +82,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install bandit
+          pip install bandit==1.7.9
 
       - name: Bandit Scan
         run: bandit -r backend -lll -iii
