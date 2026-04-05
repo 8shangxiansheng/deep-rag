@@ -62,3 +62,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：4deb834e3425c383d913d3f75d099079945a7ada
 - 推送：`git push origin main`
+
+## 2026-04-05 16:25:30 +0800
+- 任务：P2-3 摘要生成流程产品化（可复现流水线、失败重试、产物版本化）
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：02e7c2003f5432def8d594d896c6861060cb39fe
+- 推送：`git push origin main`
