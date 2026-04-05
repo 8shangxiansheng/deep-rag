@@ -183,8 +183,7 @@ Knowledge-Base/
 Generate a structured summary of your knowledge base:
 
 ```bash
-cd Knowledge-Base-File-Summary
-python generate.py
+bash scripts/generate-summary.sh
 ```
 
 This creates a "knowledge map" that looks like:
@@ -193,6 +192,22 @@ Product-Line-A-Smartwatch-Series/
 ├─ SW-2100-Flagship.md: 2.1" AMOLED, 72h battery, IP68, $2999
 ├─ SW-1800-Business.md: 1.8" LCD, 48h battery, IP67, $1899
 └─ SW-1500-Sport.md: 1.5" TFT, 36h battery, IP68, $999
+```
+
+Pipeline outputs (versioned artifacts):
+- `Knowledge-Base-File-Summary/summary.txt` (latest summary for runtime)
+- `Knowledge-Base-File-Summary/summary_cache.json` (resume cache)
+- `Knowledge-Base-File-Summary/artifacts/<run-id>/manifest.json` (reproducible metadata)
+- `Knowledge-Base-File-Summary/artifacts/<run-id>/summary.txt` (versioned output snapshot)
+
+Optional custom run:
+```bash
+python Knowledge-Base-File-Summary/generate.py \
+  --run-id 20260405-120000 \
+  --retry-rounds 3 \
+  --max-retries 5 \
+  --request-delay-seconds 0.5 \
+  --strict
 ```
 
 ### 3. System Prompt Integration

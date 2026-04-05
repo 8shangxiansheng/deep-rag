@@ -25,7 +25,9 @@ class KnowledgeBase:
         return (
             "⚠️ Knowledge Base Summary file not found.\n\n"
             "Please generate it first by running:\n"
-            "Knowledge-Base-File-Summary/generate.py\n\n"
+            "bash scripts/generate-summary.sh\n"
+            "or\n"
+            "python Knowledge-Base-File-Summary/generate.py --strict\n\n"
             f"Expected file path: {self.summary_file}"
         )
     

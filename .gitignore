@@ -59,3 +59,5 @@ backend.log
 frontend.log
 *.log
 learn/
+Knowledge-Base-File-Summary/artifacts/
+Knowledge-Base-File-Summary/summary_cache.json

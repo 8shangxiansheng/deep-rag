@@ -183,8 +183,7 @@ Knowledge-Base/
 生成知识库的结构化摘要：
 
 ```bash
-cd Knowledge-Base-File-Summary
-python generate.py
+bash scripts/generate-summary.sh
 ```
 
 这将创建一个"知识地图"，如下所示：
@@ -193,6 +192,22 @@ Product-Line-A-Smartwatch-Series/
 ├─ SW-2100-Flagship.md: 2.1" AMOLED, 72h battery, IP68, $2999
 ├─ SW-1800-Business.md: 1.8" LCD, 48h battery, IP67, $1899
 └─ SW-1500-Sport.md: 1.5" TFT, 36h battery, IP68, $999
+```
+
+流水线产物（带版本）：
+- `Knowledge-Base-File-Summary/summary.txt`（运行时读取的最新摘要）
+- `Knowledge-Base-File-Summary/summary_cache.json`（断点续跑缓存）
+- `Knowledge-Base-File-Summary/artifacts/<run-id>/manifest.json`（可复现元数据）
+- `Knowledge-Base-File-Summary/artifacts/<run-id>/summary.txt`（版本化摘要快照）
+
+可选自定义运行：
+```bash
+python Knowledge-Base-File-Summary/generate.py \
+  --run-id 20260405-120000 \
+  --retry-rounds 3 \
+  --max-retries 5 \
+  --request-delay-seconds 0.5 \
+  --strict
 ```
 
 ### 3. 系统提示词集成
