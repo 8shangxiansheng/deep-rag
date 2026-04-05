@@ -41,3 +41,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：f128b97dd20db4ad78e58ab2509a9a83fafeef51
 - 推送：`git push origin main`
+
+## 2026-04-05 16:10:23 +0800
+- 任务：P1-3 补充最小自动化测试集（限流器、检索边界、错误结构契约）
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：4175a38e5c76d4089961ec2366cf6e37b4f3c14b
+- 推送：`git push origin main`
