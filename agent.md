@@ -55,3 +55,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：d8868346f4888fa32478186c3c99269fa0123b92
 - 推送：`git push origin main`
+
+## 2026-04-05 16:20:42 +0800
+- 任务：P2-2 建立 CI 质量门禁（lint/test/security scan）
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：4deb834e3425c383d913d3f75d099079945a7ada
+- 推送：`git push origin main`
