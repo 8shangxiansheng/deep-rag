@@ -57,8 +57,7 @@ def create_react_system_prompt(file_summary: str) -> str:
 
 ### Pattern
 - <|Thought|> Think about what information you need to answer the question
-- <|Action|> Tool
-- <|Action Input|> Input format
+- <|Action|> {"tool":"retrieve_files","input":{"file_paths":["path1","path2"]}}
 - <|Observation|> [The system will provide file contents here]
 - ... (repeat Thought/Action/Observation as needed)
 - <|Final Answer|> [Your final answer based on the retrieved information]
@@ -66,8 +65,7 @@ def create_react_system_prompt(file_summary: str) -> str:
 ### Example
 - Question: What are all the technical specifications of SW-2100?
 - <|Thought|> The File Summary only mentions basic info. I need the complete product file for all specifications
-- <|Action|> retrieve_files
-- <|Action Input|> {{"file_paths": ["Product-Line-A-Smartwatch-Series/SW-2100-Flagship.md"]}}
+- <|Action|> {{"tool":"retrieve_files","input":{{"file_paths":["Product-Line-A-Smartwatch-Series/SW-2100-Flagship.md"]}}}}
 - <|Observation|> [System provides file content]
 - <|Final Answer|> [Complete specifications based on retrieved file]
 
@@ -121,23 +119,55 @@ async def process_tool_calls(tool_calls: List[Dict]) -> List[Dict]:
     return results
 
 
+def _extract_json_after_marker(text: str, marker: str) -> dict | None:
+    marker_index = text.rfind(marker)
+    if marker_index == -1:
+        return None
+
+    start = marker_index + len(marker)
+    while start < len(text) and text[start].isspace():
+        start += 1
+
+    if start >= len(text):
+        return None
+
+    decoder = json.JSONDecoder()
+    try:
+        payload, _ = decoder.raw_decode(text[start:])
+    except json.JSONDecodeError:
+        return None
+
+    if isinstance(payload, dict):
+        return payload
+    return None
+
+
 def parse_react_response(text: str) -> tuple:
-    """Parse ReAct-style response to extract action and input"""
+    """Parse ReAct response with structured JSON payload and legacy fallback."""
+    action_payload = _extract_json_after_marker(text, "<|Action|>")
+    if action_payload:
+        action = action_payload.get("tool")
+        action_input = action_payload.get("input")
+        if isinstance(action, str) and isinstance(action_input, dict):
+            return action, action_input, True
+
+    # Backward compatibility for older two-line format:
+    # <|Action|> retrieve_files
+    # <|Action Input|> {"file_paths":[...]}
     import re
 
-    # 查找 <|Action|> 和 <|Action Input|> (新格式)
-    action_pattern = r'<\|Action\|>\s*(\w+)'
-    action_input_pattern = r'<\|Action Input\|>\s*(\{[^}]+\})'
-
+    action_pattern = r"<\|Action\|>\s*(\w+)"
+    action_input_pattern = r"<\|Action Input\|>\s*(\{.*\})"
     action_match = re.search(action_pattern, text)
-    action_input_match = re.search(action_input_pattern, text)
+    action_input_match = re.search(action_input_pattern, text, flags=re.DOTALL)
 
     if action_match and action_input_match:
         action = action_match.group(1)
         try:
             action_input = json.loads(action_input_match.group(1))
-            return action, action_input, True
-        except:
+            if isinstance(action_input, dict):
+                return action, action_input, True
+        except json.JSONDecodeError:
             pass
 
     return None, None, False

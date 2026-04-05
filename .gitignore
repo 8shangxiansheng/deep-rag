@@ -58,3 +58,4 @@ Thumbs.db
 backend.log
 frontend.log
 *.log
+learn/

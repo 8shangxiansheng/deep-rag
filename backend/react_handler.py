@@ -25,13 +25,12 @@ async def handle_react_mode(provider, messages, max_iterations=5) -> AsyncIterat
                 if chunk["type"] == "content":
                     content = chunk["content"] or ""
                     accumulated_response += content
-                    
-                    if "<|Action Input|>" in accumulated_response and "{" in accumulated_response:
-                        action_result, has_action = await process_react_response(accumulated_response)
-                        if has_action:
-                            action_detected = True
-                            yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
-                            break
+
+                    action_result, has_action = await process_react_response(accumulated_response)
+                    if has_action:
+                        action_detected = True
+                        yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
+                        break
                     
                     yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
                     
