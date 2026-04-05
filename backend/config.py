@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     
     api_provider: str = Field(default="google")
     tool_calling_mode: str = Field(default="function")
+    debug_logging: bool = Field(default=False)
     temperature: float = Field(default=0.0)
     max_tokens: int = Field(default=8192)
     knowledge_base: str = Field(default="./Knowledge-Base")

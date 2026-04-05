@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 CONFIG_API_TOKEN_HEADER = "x-admin-token"
 SENSITIVE_ENV_KEYWORDS = ("API_KEY", "TOKEN", "PASSWORD", "SECRET", "PRIVATE_KEY")
 
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.DEBUG if settings.debug_logging else logging.INFO)
+
 
 def _ensure_config_api_enabled() -> None:
     if not settings.enable_config_api:
@@ -169,8 +172,9 @@ async def get_knowledge_base_info():
             "summary": summary,
             "file_tree": file_tree
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Failed to read knowledge base info")
+        raise HTTPException(status_code=500, detail="Failed to load knowledge base info")
 
 @app.get("/system-prompt")
 async def get_system_prompt():
@@ -188,8 +192,9 @@ async def get_system_prompt():
             "system_prompt": system_prompt,
             "mode": settings.tool_calling_mode
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Failed to load system prompt")
+        raise HTTPException(status_code=500, detail="Failed to load system prompt")
 
 @app.post("/knowledge-base/retrieve", response_model=FileRetrievalResponse)
 async def retrieve_files(request: FileRetrievalRequest):
@@ -315,8 +320,9 @@ async def chat(request: ChatRequest):
             }
         )
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Chat request failed")
+        raise HTTPException(status_code=500, detail="Chat request failed")
 
 @app.get("/providers")
 async def list_providers():
