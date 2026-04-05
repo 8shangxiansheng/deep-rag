@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { User, Bot, ChevronDown, ChevronRight, Wrench, FileText, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Message } from '../types';
+import type { Message, ToolCall, ToolResult } from '../types';
 import './ChatMessage.css';
 
 interface ChatMessageProps {
   message: Message;
-  toolCalls?: any[];
-  toolResults?: any[];
+  toolCalls?: ToolCall[];
+  toolResults?: ToolResult[];
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, toolCalls, toolResults }) => {
@@ -76,7 +76,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, toolCalls, toolResul
                   </div>
                   {toolCalls.map((toolCall, index) => {
                     try {
-                      const args = JSON.parse(toolCall.function?.arguments || '{}');
+                      const args = JSON.parse(toolCall.function?.arguments || '{}') as { file_paths?: string[] };
                       return (
                         <div key={index} className="tool-call-item">
                           <div className="tool-call-files">
@@ -86,7 +86,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, toolCalls, toolResul
                           </div>
                         </div>
                       );
-                    } catch (e) {
+                    } catch {
                       return null;
                     }
                   })}

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Settings, FileCode } from 'lucide-react';
 import { chatApi } from './api';
-import type { Message, Provider, StreamChunk } from './types';
+import type { Message, StreamChunk, ToolCall, ToolResult } from './types';
 import ChatMessage from './components/ChatMessage';
 import SystemPromptPanel from './components/SystemPromptPanel';
 import ConfigPanel from './components/ConfigPanel';
@@ -15,16 +15,14 @@ function App() {
   const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [messageToolCalls, setMessageToolCalls] = useState<Map<number, any[]>>(new Map());
-  const [messageToolResults, setMessageToolResults] = useState<Map<number, any[]>>(new Map());
+  const [messageToolCalls, setMessageToolCalls] = useState<Map<number, ToolCall[]>>(new Map());
+  const [messageToolResults, setMessageToolResults] = useState<Map<number, ToolResult[]>>(new Map());
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadConfig();
-    loadProviders();
   }, []);
 
   useEffect(() => {
@@ -44,15 +42,6 @@ function App() {
       setSelectedModel(config.default_model);
     } catch (error) {
       console.error('Failed to load config:', error);
-    }
-  };
-
-  const loadProviders = async () => {
-    try {
-      const data = await chatApi.getProviders();
-      setProviders(data.providers);
-    } catch (error) {
-      console.error('Failed to load providers:', error);
     }
   };
 
@@ -91,7 +80,7 @@ function App() {
       const decoder = new TextDecoder();
       let assistantMessage = '';
       let toolCallsInfo = '';
-      let currentToolCalls: any[] = [];
+      let currentToolCalls: ToolCall[] = [];
       let hasToolCall = false; // Flag for tool calls
       let buffer = ''; // Buffer for handling cross-block JSON
 
@@ -172,7 +161,7 @@ function App() {
                   // Save tool call results
                   console.log('[DEBUG] Received tool_results:', parsed.results.length, 'results');
                   
-                  parsed.results.forEach((result: any, index: number) => {
+                  parsed.results.forEach((result, index: number) => {
                     console.log(`[DEBUG] Result ${index}: ${result.content?.length || 0} characters`);
                   });
                   
@@ -274,7 +263,6 @@ function App() {
             onClose={() => setShowConfigPanel(false)}
             onConfigUpdated={() => {
               loadConfig();
-              loadProviders();
             }}
           />
         )}
