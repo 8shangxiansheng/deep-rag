@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Dict
 from backend.config import settings
 
+
 class KnowledgeBase:
     def __init__(self, base_path: str = None):
         self.base_path = Path(base_path or settings.knowledge_base_chunks)
@@ -29,37 +30,64 @@ class KnowledgeBase:
         )
     
     async def retrieve_files(self, file_paths: List[str]) -> str:
+        if not file_paths:
+            raise ValueError("file_paths cannot be empty")
+        if len(file_paths) > settings.max_retrieve_paths:
+            raise ValueError(f"Too many paths requested: {len(file_paths)} > {settings.max_retrieve_paths}")
+
         results = []
-        
+        retrieved_files = 0
+        total_chars = 0
+
         for file_path in file_paths:
-            full_path = self.base_path / file_path.lstrip('/')
-            
-            if full_path.is_dir():
-                print(f"[DEBUG] Retrieving directory: {file_path}")
-                md_files = list(full_path.rglob("*.md"))
-                print(f"[DEBUG] Found {len(md_files)} files in {file_path}")
-                for md_file in md_files:
-                    content = await self._read_file(md_file)
-                    relative_path = md_file.relative_to(self.base_path)
-                    results.append(f"《{relative_path}》\n\n{content}")
-                    print(f"[DEBUG] Added file: {relative_path}, length: {len(content)}")
-            
-            elif full_path.is_file():
-                print(f"[DEBUG] Retrieving file: {file_path}")
-                content = await self._read_file(full_path)
-                results.append(f"《{file_path}》\n\n{content}")
-                print(f"[DEBUG] File length: {len(content)}")
-            
-            elif file_path == "/":
-                print(f"[DEBUG] Retrieving all files")
-                for md_file in self.base_path.rglob("*.md"):
-                    content = await self._read_file(md_file)
-                    relative_path = md_file.relative_to(self.base_path)
-                    results.append(f"《{relative_path}》\n\n{content}")
-        
+            if file_path == "/":
+                if not settings.allow_full_retrieval:
+                    raise ValueError("Full retrieval ('/') is disabled by server policy")
+                md_files = sorted(self.base_path.rglob("*.md"))
+            else:
+                target_path = self._resolve_safe_path(file_path)
+
+                if target_path.is_dir():
+                    md_files = sorted(target_path.rglob("*.md"))
+                elif target_path.is_file():
+                    if target_path.suffix.lower() != ".md":
+                        raise ValueError(f"Only markdown files are allowed: {file_path}")
+                    md_files = [target_path]
+                else:
+                    raise FileNotFoundError(f"Path not found: {file_path}")
+
+            for md_file in md_files:
+                if retrieved_files >= settings.max_retrieve_files:
+                    raise ValueError(f"Too many files retrieved: {settings.max_retrieve_files} limit reached")
+
+                content = await self._read_file(md_file)
+                relative_path = md_file.relative_to(self.base_path)
+                rendered_content = f"《{relative_path}》\n\n{content}"
+
+                next_total = total_chars + len(rendered_content)
+                if next_total > settings.max_retrieve_chars:
+                    raise ValueError(
+                        f"Retrieved content exceeds limit: {next_total} > {settings.max_retrieve_chars} characters"
+                    )
+
+                results.append(rendered_content)
+                retrieved_files += 1
+                total_chars = next_total
+
         final_content = "\n\n==========\n\n".join(results)
-        print(f"[DEBUG] Total content length: {len(final_content)}, files: {len(results)}")
         return final_content
+
+    def _resolve_safe_path(self, file_path: str) -> Path:
+        requested_path = (file_path or "").strip()
+        if not requested_path:
+            raise ValueError("Empty path is not allowed")
+
+        candidate = (self.base_path / requested_path.lstrip("/")).resolve()
+        base = self.base_path.resolve()
+        if candidate != base and base not in candidate.parents:
+            raise ValueError(f"Path escapes knowledge base: {file_path}")
+
+        return candidate
     
     async def _read_file(self, file_path: Path) -> str:
         try:

@@ -28,7 +28,7 @@ def _create_base_system_prompt(file_summary: str) -> str:
 - Retrieve specific files: ["Product-Line-A-Smartwatch-Series/SW-1500-Sport.md", "Product-Line-B-Smart-Earbuds-Series/AE-Sport-Athletic.md"]
 - Retrieve multiple directories: ["2024-Market-Layout/", "2023-Market-Layout/"]
 - Retrieve directories and files together: ["2024-Market-Layout/", "2023-Market-Layout/South-China-Region.md"]
-- Retrieve all files: ["/"]
+- Full retrieval with ["/"] may be disabled by server policy
 
 """.strip()
 
@@ -79,14 +79,14 @@ def create_file_retrieval_tool() -> Dict:
         "type": "function",
         "function": {
             "name": "retrieve_files",
-            "description": "Retrieve file contents from the knowledge base. You can retrieve specific files, entire directories, or all files.",
+            "description": "Retrieve markdown file contents from the knowledge base. You can retrieve specific files or entire directories.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "file_paths": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of file paths or directory paths to retrieve. Use '/' to retrieve all files."
+                        "description": "List of file paths or directory paths to retrieve."
                     }
                 },
                 "required": ["file_paths"]

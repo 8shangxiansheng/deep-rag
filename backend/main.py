@@ -196,8 +196,11 @@ async def retrieve_files(request: FileRetrievalRequest):
     try:
         content = await knowledge_base.retrieve_files(request.file_paths)
         return {"content": content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to retrieve knowledge base files")
+        raise HTTPException(status_code=500, detail="Failed to retrieve files")
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
