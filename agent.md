@@ -27,3 +27,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：de668d53044a49552ee1d4d69c466b93e8088ccb
 - 推送：`git push origin main`
+
+## 2026-04-05 16:06:17 +0800
+- 任务：P1-1 统一前端配置接口基址（移除硬编码 localhost）
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：f469e4541893a2f11755ffb09b8321a108d70c5a
+- 推送：`git push origin main`
