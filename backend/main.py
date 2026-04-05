@@ -14,19 +14,50 @@ from backend.models import (
 from backend.knowledge_base import knowledge_base
 from backend.llm_provider import LLMProvider
 from backend.prompts import create_system_prompt, create_file_retrieval_tool, create_react_system_prompt
+from backend.rate_limiter import InMemoryRateLimiter
 from backend.react_handler import handle_react_mode
 
 logger = logging.getLogger(__name__)
 CONFIG_API_TOKEN_HEADER = "x-admin-token"
 SENSITIVE_ENV_KEYWORDS = ("API_KEY", "TOKEN", "PASSWORD", "SECRET", "PRIVATE_KEY")
+ERROR_CODE_KEY = "code"
+ERROR_MESSAGE_KEY = "message"
 
 if not logging.getLogger().handlers:
     logging.basicConfig(level=logging.DEBUG if settings.debug_logging else logging.INFO)
 
+rate_limiter = InMemoryRateLimiter()
+
+
+def _api_error(status_code: int, code: str, message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            ERROR_CODE_KEY: code,
+            ERROR_MESSAGE_KEY: message,
+        },
+    )
+
+
+def _enforce_rate_limit(scope: str, request: Request, max_requests: int) -> None:
+    client_key = request.client.host if request.client else "unknown"
+    allowed = rate_limiter.allow(
+        scope=scope,
+        key=client_key,
+        max_requests=max_requests,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
+    if not allowed:
+        raise _api_error(
+            status_code=429,
+            code="RATE_LIMIT_EXCEEDED",
+            message=f"Too many requests for '{scope}'. Please retry later.",
+        )
+
 
 def _ensure_config_api_enabled() -> None:
     if not settings.enable_config_api:
-        raise HTTPException(status_code=403, detail="Config API is disabled")
+        raise _api_error(status_code=403, code="CONFIG_API_DISABLED", message="Config API is disabled")
 
 
 def _is_request_from_allowed_host(request: Request) -> bool:
@@ -37,7 +68,11 @@ def _is_request_from_allowed_host(request: Request) -> bool:
 def _require_config_read_access(request: Request) -> None:
     _ensure_config_api_enabled()
     if not _is_request_from_allowed_host(request):
-        raise HTTPException(status_code=403, detail="Config API is only available from allowed hosts")
+        raise _api_error(
+            status_code=403,
+            code="CONFIG_API_FORBIDDEN_HOST",
+            message="Config API is only available from allowed hosts",
+        )
 
 
 def _require_config_write_access(request: Request) -> None:
@@ -45,11 +80,15 @@ def _require_config_write_access(request: Request) -> None:
 
     expected_token = settings.config_api_admin_token.strip()
     if not expected_token:
-        raise HTTPException(status_code=503, detail="Config API admin token is not configured")
+        raise _api_error(
+            status_code=503,
+            code="CONFIG_API_TOKEN_NOT_CONFIGURED",
+            message="Config API admin token is not configured",
+        )
 
     provided_token = request.headers.get(CONFIG_API_TOKEN_HEADER, "").strip()
     if provided_token != expected_token:
-        raise HTTPException(status_code=401, detail="Invalid admin token")
+        raise _api_error(status_code=401, code="CONFIG_API_INVALID_TOKEN", message="Invalid admin token")
 
 
 def _redact_env_content(content: str) -> str:
@@ -121,7 +160,7 @@ async def get_env_config(request: Request):
 
     env_path = find_dotenv()
     if not env_path:
-        raise HTTPException(status_code=404, detail=".env file not found")
+        raise _api_error(status_code=404, code="ENV_FILE_NOT_FOUND", message=".env file not found")
     
     with open(env_path, 'r', encoding='utf-8') as f:
         content = _redact_env_content(f.read())
@@ -135,11 +174,11 @@ async def update_env_config(request: Request, payload: dict):
 
     env_path = find_dotenv()
     if not env_path:
-        raise HTTPException(status_code=404, detail=".env file not found")
+        raise _api_error(status_code=404, code="ENV_FILE_NOT_FOUND", message=".env file not found")
     
     content = payload.get("content", "")
     if not content or not content.strip():
-        raise HTTPException(status_code=400, detail="Config content cannot be empty")
+        raise _api_error(status_code=400, code="CONFIG_CONTENT_EMPTY", message="Config content cannot be empty")
     
     try:
         # Write content directly
@@ -161,7 +200,7 @@ async def update_env_config(request: Request, payload: dict):
         raise
     except Exception:
         logger.exception("Failed to update configuration")
-        raise HTTPException(status_code=500, detail="Failed to update configuration")
+        raise _api_error(status_code=500, code="CONFIG_UPDATE_FAILED", message="Failed to update configuration")
 
 @app.get("/knowledge-base/info", response_model=KnowledgeBaseInfo)
 async def get_knowledge_base_info():
@@ -174,7 +213,11 @@ async def get_knowledge_base_info():
         }
     except Exception:
         logger.exception("Failed to read knowledge base info")
-        raise HTTPException(status_code=500, detail="Failed to load knowledge base info")
+        raise _api_error(
+            status_code=500,
+            code="KNOWLEDGE_BASE_INFO_LOAD_FAILED",
+            message="Failed to load knowledge base info",
+        )
 
 @app.get("/system-prompt")
 async def get_system_prompt():
@@ -194,21 +237,23 @@ async def get_system_prompt():
         }
     except Exception:
         logger.exception("Failed to load system prompt")
-        raise HTTPException(status_code=500, detail="Failed to load system prompt")
+        raise _api_error(status_code=500, code="SYSTEM_PROMPT_LOAD_FAILED", message="Failed to load system prompt")
 
 @app.post("/knowledge-base/retrieve", response_model=FileRetrievalResponse)
-async def retrieve_files(request: FileRetrievalRequest):
+async def retrieve_files(http_request: Request, request: FileRetrievalRequest):
+    _enforce_rate_limit("knowledge-base-retrieve", http_request, settings.rate_limit_retrieve_requests)
     try:
         content = await knowledge_base.retrieve_files(request.file_paths)
         return {"content": content}
     except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise _api_error(status_code=400, code="RETRIEVE_INVALID_REQUEST", message=str(e))
     except Exception:
         logger.exception("Failed to retrieve knowledge base files")
-        raise HTTPException(status_code=500, detail="Failed to retrieve files")
+        raise _api_error(status_code=500, code="RETRIEVE_FAILED", message="Failed to retrieve files")
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+async def chat(http_request: Request, request: ChatRequest):
+    _enforce_rate_limit("chat", http_request, settings.rate_limit_chat_requests)
     try:
         provider = LLMProvider(provider=request.provider or settings.api_provider)
         
@@ -322,7 +367,7 @@ async def chat(request: ChatRequest):
     
     except Exception:
         logger.exception("Chat request failed")
-        raise HTTPException(status_code=500, detail="Chat request failed")
+        raise _api_error(status_code=500, code="CHAT_REQUEST_FAILED", message="Chat request failed")
 
 @app.get("/providers")
 async def list_providers():
