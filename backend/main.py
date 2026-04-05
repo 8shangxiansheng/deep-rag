@@ -79,10 +79,13 @@ app = FastAPI(
     description="A Deep RAG system that teaches AI to truly understand your knowledge base"
 )
 
+cors_origins = settings.get_cors_allowed_origins()
+allow_credentials = "*" not in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

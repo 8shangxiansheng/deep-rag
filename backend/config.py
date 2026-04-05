@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     knowledge_base: str = Field(default="./Knowledge-Base")
     knowledge_base_chunks: str = Field(default="./Knowledge-Base")
     knowledge_base_file_summary: str = Field(default="./Knowledge-Base-File-Summary/summary.txt")
+    cors_allowed_origins: str = Field(default="http://localhost:5173,http://127.0.0.1:5173")
     enable_config_api: bool = Field(default=False)
     config_api_allowed_hosts: str = Field(default="127.0.0.1,::1,localhost")
     config_api_admin_token: str = Field(default="")
@@ -63,6 +64,14 @@ class Settings(BaseSettings):
             host.strip()
             for host in self.config_api_allowed_hosts.split(",")
             if host.strip()
+        ]
+
+    def get_cors_allowed_origins(self) -> list[str]:
+        """Return normalized list of CORS allowed origins"""
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
         ]
 
 settings = Settings()
