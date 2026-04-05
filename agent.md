@@ -48,3 +48,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：4175a38e5c76d4089961ec2366cf6e37b4f3c14b
 - 推送：`git push origin main`
+
+## 2026-04-05 16:15:27 +0800
+- 任务：P2-1 重构 ReAct 解析为结构化协议，并兼容旧版协议
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：d8868346f4888fa32478186c3c99269fa0123b92
+- 推送：`git push origin main`
