@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '../api';
 import './ConfigPanel.css';
 
 interface ConfigPanelProps {
@@ -21,7 +22,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onClose, onConfigUpdated }) =
   const loadConfig = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/config');
+      const response = await fetch(`${API_BASE_URL}/api/config`);
       const data = await response.json();
       setContent(data.content || '');
     } catch (error) {
@@ -40,7 +41,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onClose, onConfigUpdated }) =
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('http://localhost:8000/api/config', {
+      const response = await fetch(`${API_BASE_URL}/api/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
