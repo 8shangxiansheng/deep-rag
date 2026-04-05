@@ -20,3 +20,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：c1fb8423d5af028ee169da77904daca764828239
 - 推送：`git push origin main`
+
+## 2026-04-05 16:00:46 +0800
+- 任务：P0-4 关闭敏感调试输出（改为可控日志）并收敛对外错误信息
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：de668d53044a49552ee1d4d69c466b93e8088ccb
+- 推送：`git push origin main`
