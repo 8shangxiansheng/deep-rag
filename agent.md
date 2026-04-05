@@ -34,3 +34,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：f469e4541893a2f11755ffb09b8321a108d70c5a
 - 推送：`git push origin main`
+
+## 2026-04-05 16:09:05 +0800
+- 任务：P1-2 增加 `/chat` 与 `/knowledge-base/retrieve` 的限流，并为上游 LLM 调用增加超时/重试/熔断，统一错误码结构
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：f128b97dd20db4ad78e58ab2509a9a83fafeef51
+- 推送：`git push origin main`
