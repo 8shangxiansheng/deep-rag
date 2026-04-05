@@ -13,3 +13,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：56a464505aa08e92f0bfd3e1f8ab4734b95cd7d4
 - 推送：`git push origin main`
+
+## 2026-04-05 15:59:02 +0800
+- 任务：P0-3 增加检索安全边界（路径防逃逸、全量检索开关、文件与字符上限）
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：c1fb8423d5af028ee169da77904daca764828239
+- 推送：`git push origin main`
