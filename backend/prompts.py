@@ -157,18 +157,12 @@ def parse_react_response(text: str) -> tuple:
     import re
 
     action_pattern = r"<\|Action\|>\s*(\w+)"
-    action_input_pattern = r"<\|Action Input\|>\s*(\{.*\})"
     action_match = re.search(action_pattern, text)
-    action_input_match = re.search(action_input_pattern, text, flags=re.DOTALL)
+    legacy_action_input = _extract_json_after_marker(text, "<|Action Input|>")
 
-    if action_match and action_input_match:
+    if action_match and isinstance(legacy_action_input, dict):
         action = action_match.group(1)
-        try:
-            action_input = json.loads(action_input_match.group(1))
-            if isinstance(action_input, dict):
-                return action, action_input, True
-        except json.JSONDecodeError:
-            pass
+        return action, legacy_action_input, True
 
     return None, None, False
 

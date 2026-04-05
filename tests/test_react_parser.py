@@ -34,6 +34,21 @@ class ReactParserTest(unittest.TestCase):
         self.assertEqual(action, "retrieve_files")
         self.assertEqual(action_input, {"file_paths": ["legacy.md"]})
 
+    def test_parse_legacy_action_payload_with_observation_json(self) -> None:
+        from backend.prompts import parse_react_response
+
+        text = (
+            "<|Thought|> Need details.\n"
+            "<|Action|> retrieve_files\n"
+            '<|Action Input|> {"file_paths":["legacy.md"]}\n'
+            '<|Observation|> {"status":"ok"}'
+        )
+
+        action, action_input, has_action = parse_react_response(text)
+        self.assertTrue(has_action)
+        self.assertEqual(action, "retrieve_files")
+        self.assertEqual(action_input, {"file_paths": ["legacy.md"]})
+
 
 if __name__ == "__main__":
     unittest.main()
