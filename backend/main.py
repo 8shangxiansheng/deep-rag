@@ -1,13 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import json
-import os
-import signal
+import logging
 from typing import AsyncIterator
 from dotenv import load_dotenv, find_dotenv
 
-from backend.config import settings
+from backend.config import settings, Settings
 from backend.models import (
     ChatRequest, FileRetrievalRequest, FileRetrievalResponse,
     KnowledgeBaseInfo, HealthResponse
@@ -16,6 +15,63 @@ from backend.knowledge_base import knowledge_base
 from backend.llm_provider import LLMProvider
 from backend.prompts import create_system_prompt, create_file_retrieval_tool, create_react_system_prompt
 from backend.react_handler import handle_react_mode
+
+logger = logging.getLogger(__name__)
+CONFIG_API_TOKEN_HEADER = "x-admin-token"
+SENSITIVE_ENV_KEYWORDS = ("API_KEY", "TOKEN", "PASSWORD", "SECRET", "PRIVATE_KEY")
+
+
+def _ensure_config_api_enabled() -> None:
+    if not settings.enable_config_api:
+        raise HTTPException(status_code=403, detail="Config API is disabled")
+
+
+def _is_request_from_allowed_host(request: Request) -> bool:
+    host = request.client.host if request.client else ""
+    return host in settings.get_config_api_allowed_hosts()
+
+
+def _require_config_read_access(request: Request) -> None:
+    _ensure_config_api_enabled()
+    if not _is_request_from_allowed_host(request):
+        raise HTTPException(status_code=403, detail="Config API is only available from allowed hosts")
+
+
+def _require_config_write_access(request: Request) -> None:
+    _require_config_read_access(request)
+
+    expected_token = settings.config_api_admin_token.strip()
+    if not expected_token:
+        raise HTTPException(status_code=503, detail="Config API admin token is not configured")
+
+    provided_token = request.headers.get(CONFIG_API_TOKEN_HEADER, "").strip()
+    if provided_token != expected_token:
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+
+
+def _redact_env_content(content: str) -> str:
+    has_trailing_newline = content.endswith("\n")
+    redacted_lines = []
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            redacted_lines.append(line)
+            continue
+
+        key, value = line.split("=", 1)
+        key_upper = key.strip().upper()
+
+        if any(keyword in key_upper for keyword in SENSITIVE_ENV_KEYWORDS) and value.strip():
+            redacted_lines.append(f"{key}=***REDACTED***")
+        else:
+            redacted_lines.append(line)
+
+    redacted = "\n".join(redacted_lines)
+    if has_trailing_newline:
+        redacted += "\n"
+    return redacted
+
 
 app = FastAPI(
     title="Deep RAG",
@@ -53,25 +109,29 @@ async def get_config():
     }
 
 @app.get("/api/config")
-async def get_env_config():
-    """Read the original content of .env file"""
+async def get_env_config(request: Request):
+    """Read redacted .env content"""
+    _require_config_read_access(request)
+
     env_path = find_dotenv()
     if not env_path:
         raise HTTPException(status_code=404, detail=".env file not found")
     
     with open(env_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+        content = _redact_env_content(f.read())
     
     return {"content": content}
 
 @app.post("/api/config")
-async def update_env_config(request: dict):
+async def update_env_config(request: Request, payload: dict):
     """Directly save .env file content"""
+    _require_config_write_access(request)
+
     env_path = find_dotenv()
     if not env_path:
         raise HTTPException(status_code=404, detail=".env file not found")
     
-    content = request.get("content", "")
+    content = payload.get("content", "")
     if not content or not content.strip():
         raise HTTPException(status_code=400, detail="Config content cannot be empty")
     
@@ -81,16 +141,21 @@ async def update_env_config(request: dict):
             f.write(content)
         
         # Reload environment variables
-        load_dotenv(override=True)
+        load_dotenv(dotenv_path=env_path, override=True)
         
         # Reinitialize settings object
         global settings
-        from backend.config import Settings
         settings = Settings()
+
+        host = request.client.host if request.client else "unknown"
+        logger.warning("Config updated from host=%s", host)
         
         return {"status": "success", "message": "Configuration updated successfully!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to update configuration")
+        raise HTTPException(status_code=500, detail="Failed to update configuration")
 
 @app.get("/knowledge-base/info", response_model=KnowledgeBaseInfo)
 async def get_knowledge_base_info():

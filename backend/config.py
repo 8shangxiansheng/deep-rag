@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     knowledge_base: str = Field(default="./Knowledge-Base")
     knowledge_base_chunks: str = Field(default="./Knowledge-Base")
     knowledge_base_file_summary: str = Field(default="./Knowledge-Base-File-Summary/summary.txt")
+    enable_config_api: bool = Field(default=False)
+    config_api_allowed_hosts: str = Field(default="127.0.0.1,::1,localhost")
+    config_api_admin_token: str = Field(default="")
 
     class Config:
         env_file = ".env"
@@ -53,5 +56,13 @@ class Settings(BaseSettings):
                 provider = key[:-6].lower()
                 providers.append(provider)
         return sorted(providers)
+
+    def get_config_api_allowed_hosts(self) -> list[str]:
+        """Return normalized list of hosts allowed to access config API"""
+        return [
+            host.strip()
+            for host in self.config_api_allowed_hosts.split(",")
+            if host.strip()
+        ]
 
 settings = Settings()
