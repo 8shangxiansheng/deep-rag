@@ -76,3 +76,10 @@
 - 远程：https://github.com/8shangxiansheng/deep-rag.git
 - 提交：2175e89bae7213e1e9afdb556bbe8a40b97e3562
 - 推送：`git push origin main`
+
+## 2026-04-05 16:54:42 +0800
+- 任务：Review 修复 2：固定 CI 中 ruff 与 bandit 版本，提升门禁可复现性
+- 分支：main
+- 远程：https://github.com/8shangxiansheng/deep-rag.git
+- 提交：acf64494a5b010b785def3366952b58ced3b5dc6
+- 推送：`git push origin main`
